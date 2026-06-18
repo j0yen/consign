@@ -6,6 +6,9 @@
 #![deny(unsafe_code)]
 
 pub mod drain;
+pub mod verify;
+
+pub use verify::{OverallVerdict, VerifyReceipt};
 
 use std::path::{Path, PathBuf};
 use std::process::Command;

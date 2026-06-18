@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand, ValueEnum};
 
 use consign::drain::{drain_all, render_drain_table, DrainConfig, RealPushRunner};
+use consign::verify::{render_verify_table, VerifyConfig};
 use consign::{render_table, survey};
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -32,6 +33,28 @@ enum Cmd {
         /// Root directories to scan (default: ~/wintermute)
         #[arg(long = "root", short = 'r')]
         roots: Vec<PathBuf>,
+
+        /// Output format
+        #[arg(long, short = 'f', default_value = "table")]
+        format: Format,
+    },
+
+    /// Verify convergence: re-survey fleet and check push-debt is gone.
+    ///
+    /// Verdicts:
+    ///   converged   — no auto-ok push-debt remains (exit 0)
+    ///   contradicted — a repo drain claimed pushed is still ahead/no-upstream (exit 1)
+    ///   residual    — auto-ok debt remains but no drain receipt supplied (exit 0 + warning)
+    ///
+    /// manual-only/diverged/no-remote debt is always out of convergence scope.
+    Verify {
+        /// Root directories to scan (default: ~/wintermute)
+        #[arg(long = "root", short = 'r')]
+        roots: Vec<PathBuf>,
+
+        /// Drain receipt JSON to cross-check against (output of: consign drain --format json)
+        #[arg(long = "against")]
+        against: Option<PathBuf>,
 
         /// Output format
         #[arg(long, short = 'f', default_value = "table")]
@@ -71,6 +94,64 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.cmd {
+        Cmd::Verify {
+            mut roots,
+            against,
+            format,
+        } => {
+            if roots.is_empty() {
+                if let Some(home) = std::env::var_os("HOME") {
+                    roots.push(PathBuf::from(home).join("wintermute"));
+                } else {
+                    eprintln!("consign: HOME not set; pass --root explicitly");
+                    std::process::exit(1);
+                }
+            }
+
+            // Load drain receipt if --against was supplied.
+            let drain_receipt = if let Some(ref path) = against {
+                match std::fs::read_to_string(path) {
+                    Ok(s) => match serde_json::from_str::<Vec<consign::drain::DrainReceipt>>(&s) {
+                        Ok(r) => Some(r),
+                        Err(e) => {
+                            eprintln!("consign verify: failed to parse drain receipt {}: {}", path.display(), e);
+                            std::process::exit(1);
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("consign verify: cannot read drain receipt {}: {}", path.display(), e);
+                        std::process::exit(1);
+                    }
+                }
+            } else {
+                None
+            };
+
+            let config = VerifyConfig { roots, drain_receipt };
+            match consign::verify::verify(&config) {
+                Ok(receipt) => {
+                    let exit_code = receipt.overall.exit_code();
+
+                    match format {
+                        Format::Json => {
+                            println!("{}", serde_json::to_string_pretty(&receipt).unwrap());
+                        }
+                        Format::Table => {
+                            print!("{}", render_verify_table(&receipt));
+                        }
+                    }
+
+                    if exit_code != 0 {
+                        std::process::exit(exit_code);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("consign verify: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
+
         Cmd::Survey { mut roots, format } => {
             if roots.is_empty() {
                 if let Some(home) = std::env::var_os("HOME") {
