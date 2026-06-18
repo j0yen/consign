@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.0 — 2026-06-18
+
+consign verify: convergence check after drain — contradicted verdict with exit 1 when drain-claimed repos are still ahead; residual verdict for unchecked debt; converged when fleet is clean
+
 ## v0.4.0 — 2026-06-18
 
 consign publish: mint j0yen/<name> remote for no-remote repos; dry-run default; honest abort on auth/collision; per-repo receipts
