@@ -50,6 +50,46 @@ consign survey | head -5
 6. `consign survey | head -1` does not panic (SIGPIPE reset).
 7. `cargo test` green; binary produced at `target/release/consign`; `--help` lists `survey`.
 
+## Automated drain timer (consign-cron)
+
+`consign-drain.timer` runs `consign drain --no-dry-run` every 6 hours via
+systemd-user, matching the cadence of `adopt-cron`. It appends a one-line
+summary to `~/brain/journal/YYYY-MM-DD.md` only when repos were pushed or
+errors occurred; a clean (zero-debt) pass is silent.
+
+### Install
+
+```sh
+# Idempotent — copies unit files, reloads daemon, enables + starts timer
+bash contrib/install-cron.sh
+```
+
+Or manually:
+
+```sh
+cp contrib/consign-drain.service ~/.config/systemd/user/
+cp contrib/consign-drain.timer   ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now consign-drain.timer
+```
+
+### Verify
+
+```sh
+# Show scheduled timers
+systemctl --user list-timers | grep consign
+
+# Trigger manually (exits 0; deferred/silent if drain not yet available)
+systemctl --user start consign-drain.service
+journalctl --user -u consign-drain.service -n 20
+```
+
+### Disable
+
+```sh
+systemctl --user disable --now consign-drain.timer
+```
+
 ## License
 
 MIT — Joe Yen <jyen.tech@gmail.com>
