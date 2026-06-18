@@ -5,6 +5,8 @@
 
 #![deny(unsafe_code)]
 
+pub mod drain;
+
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
