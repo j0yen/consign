@@ -40,7 +40,7 @@ enum Cmd {
 
 fn main() {
     // SIGPIPE reset MUST be the first line of main() (see memory self_sigpipe_panic_toolkit)
-    unsafe { sigpipe::reset() };
+    sigpipe::reset();
 
     let cli = Cli::parse();
 

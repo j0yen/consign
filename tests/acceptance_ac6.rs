@@ -2,8 +2,7 @@
 //! This test verifies the binary does not exit with signal 141 (SIGPIPE) when
 //! the pipe consumer closes early.
 
-use std::io::Read;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 /// Find the consign binary in the target tree.
 fn consign_bin() -> std::path::PathBuf {
