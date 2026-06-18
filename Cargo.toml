@@ -1,0 +1,29 @@
+[package]
+name = "consign"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Accurate fleet push-debt enumerator for git repos"
+license = "MIT"
+authors = ["Joe Yen <jyen.tech@gmail.com>"]
+
+[[bin]]
+name = "consign"
+path = "src/main.rs"
+
+[lib]
+name = "consign"
+path = "src/lib.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sigpipe = "0.1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+strip = true
+opt-level = 3
