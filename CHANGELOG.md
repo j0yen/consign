@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.0 — 2026-06-18
+
+consign-cron: systemd-user timer (`consign-drain.timer`) drains push-debt every 6h — silent on clean pass, one-line journal summary on pushed repos or errors; no --force anywhere in the path.
+
 ## v0.5.0 — 2026-06-18
 
 consign verify: convergence check after drain — contradicted verdict with exit 1 when drain-claimed repos are still ahead; residual verdict for unchecked debt; converged when fleet is clean
