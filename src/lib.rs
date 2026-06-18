@@ -6,6 +6,7 @@
 #![deny(unsafe_code)]
 
 pub mod drain;
+pub mod policy;
 pub mod verify;
 
 pub use verify::{OverallVerdict, VerifyReceipt};

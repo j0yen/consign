@@ -2,6 +2,8 @@
 
 ## v0.6.0 — 2026-06-18
 
+consign policy: full policy module — `consign policy [--format json|table]`; `PolicyClass` (auto-ok|private-hold|manual-only); `classify(repo, cfg)` library export; secret-file detection (.env, *.pem, id_*, *credential*); private-name glob matching (*-private, autobuilder*); .consign-hold sentinel; branch_is_default + diverged → manual-only; `PolicyCfg` with optional ~/.config/consign/policy.toml override; 18 unit tests + all 7 ACs green.
+
 consign-cron: systemd-user timer (`consign-drain.timer`) drains push-debt every 6h — silent on clean pass, one-line journal summary on pushed repos or errors; no --force anywhere in the path.
 
 ## v0.5.0 — 2026-06-18

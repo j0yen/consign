@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand, ValueEnum};
 
 use consign::drain::{drain_all, render_drain_table, DrainConfig, RealPushRunner};
+use consign::policy::{render_policy_table, survey_with_policy, PolicyCfg};
 use consign::verify::{render_verify_table, VerifyConfig};
 use consign::{render_table, survey};
 
@@ -55,6 +56,29 @@ enum Cmd {
         /// Drain receipt JSON to cross-check against (output of: consign drain --format json)
         #[arg(long = "against")]
         against: Option<PathBuf>,
+
+        /// Output format
+        #[arg(long, short = 'f', default_value = "table")]
+        format: Format,
+    },
+
+    /// Classify push-eligibility for each repo: auto-ok | private-hold | manual-only.
+    ///
+    /// Policy classes:
+    ///   auto-ok       — safe to push automatically (ahead/no-upstream/no-remote on
+    ///                   default branch, no hold marker, no detected secret)
+    ///   private-hold  — name matches *-private or autobuilder*, .consign-hold file
+    ///                   present, or a tracked secret-shaped file (.env, *.pem, id_*,
+    ///                   *credential*) detected. Never auto-pushed.
+    ///   manual-only   — diverged, non-default branch (worktree/feature), or detached
+    ///                   HEAD. Needs human review.
+    ///
+    /// Config override: ~/.config/consign/policy.toml (or $CONSIGN_POLICY_CONFIG)
+    /// can add extra_hold_globs and extra_hold_paths. Missing config is not an error.
+    Policy {
+        /// Root directories to scan (default: ~/wintermute)
+        #[arg(long = "root", short = 'r')]
+        roots: Vec<PathBuf>,
 
         /// Output format
         #[arg(long, short = 'f', default_value = "table")]
@@ -147,6 +171,33 @@ fn main() {
                 }
                 Err(e) => {
                     eprintln!("consign verify: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
+
+        Cmd::Policy { mut roots, format } => {
+            if roots.is_empty() {
+                if let Some(home) = std::env::var_os("HOME") {
+                    roots.push(PathBuf::from(home).join("wintermute"));
+                } else {
+                    eprintln!("consign: HOME not set; pass --root explicitly");
+                    std::process::exit(1);
+                }
+            }
+
+            let cfg = PolicyCfg::load();
+            match survey_with_policy(&roots, &cfg) {
+                Ok(entries) => match format {
+                    Format::Json => {
+                        println!("{}", serde_json::to_string_pretty(&entries).unwrap());
+                    }
+                    Format::Table => {
+                        print!("{}", render_policy_table(&entries));
+                    }
+                },
+                Err(e) => {
+                    eprintln!("consign policy: {}", e);
                     std::process::exit(1);
                 }
             }
